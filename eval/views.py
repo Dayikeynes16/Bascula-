@@ -8,7 +8,7 @@ from .models import Producto, Venta, ProductoVenta
 
 
 def leer_bascula():
-    puerto = '/dev/ttyUSB0'
+    puerto = '/dev/tty.usbserial-1420' 
     baudios = 9600
     try:
         with serial.Serial(puerto, baudios, timeout=1) as ser:

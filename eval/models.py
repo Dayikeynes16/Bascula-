@@ -10,6 +10,9 @@ class Producto(models.Model):
     
     def __str__(self):
         return self.nombre + " "
+    
+    class Meta:
+        db_table = 'Producto'
 
 class Venta(models.Model):
     id_venta = models.AutoField(primary_key=True)
@@ -24,6 +27,8 @@ class Venta(models.Model):
     metodo_de_pago = models.CharField(max_length=15, choices=METODOS_DE_PAGO, default='efectivo', null=True )
     def __str__(self):
         return f"Venta #{self.id_venta}"
+    class Meta:
+        db_table = 'Venta'
  
 class ProductoVenta(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
@@ -32,4 +37,6 @@ class ProductoVenta(models.Model):
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     def __str__(self):
         return f"{self.producto.nombre} ({self.cantidad})"
+    class Meta:
+        db_table = 'ProductoVenta'
 

@@ -55,7 +55,22 @@
         {% csrf_token %}
         <div>
             <label  for="codigo">Código del Producto:</label>
-            <input class="form-control" type="text" id="codigo" name="codigo" required autofocus>
+            <input autocomplete="off" class="form-control" type="number" id="codigo" name="codigo" required autofocus>
+            <label for="codigo">Código del Producto:</label>
+            <div id="num-pad">
+                <button type="button" class="num-key" data-num="1">1</button>
+                <button type="button" class="num-key" data-num="2">2</button>
+                <button type="button" class="num-key" data-num="3">3</button>
+                <button type="button" class="num-key" data-num="4">4</button>
+                <button type="button" class="num-key" data-num="5">5</button>
+                <button type="button" class="num-key" data-num="6">6</button>
+                <button type="button" class="num-key" data-num="7">7</button>
+                <button type="button" class="num-key" data-num="8">8</button>
+                <button type="button" class="num-key" data-num="9">9</button>
+                <button type="button" class="num-key" data-num="0">0</button>
+                <button type="button" class="delete-key" style="grid-column: span 3;">Delete</button>
+            </div>
+            
         </div>
     
         <button class="btn btn-primary" type="submit">Enviar</button>
@@ -72,11 +87,29 @@
 
 <h1>Total: {{ ventaactual.total }}</h1>
 <form action="{% url 'finalizar_venta' %}" method="post">
+    <input type="hidden" name="id" value="{{ ventaactual.id_venta }}">
     {% csrf_token %}
     <button type="submit" class="btn btn-primary">Finalizar Venta</button>
 </form>
 
 </section>
+
+<script>
+document.querySelectorAll('.num-key').forEach(button => {
+    button.addEventListener('click', function() {
+        const number = this.getAttribute('data-num');
+        const input = document.getElementById('codigo');
+        input.value += number;  // Append the number to the current input value
+    });
+});
+
+document.querySelector('.delete-key').addEventListener('click', function() {
+    const input = document.getElementById('codigo');
+    input.value = input.value.slice(0, -1); // Remove the last character from input
+});
+
+</script>
+
 
 
 
