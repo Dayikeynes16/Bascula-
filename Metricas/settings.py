@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'channels',
     'eval',
 ]
 
@@ -88,14 +87,13 @@ ASGI_APPLICATION = 'Metricas.routing.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'puebla',
-        'USER': 'root',
+        'NAME': 'puebla2',
+        'USER': 'balanza',
         'PASSWORD': 'dayikeynes',
-        'HOST': '192.168.10.122',
+        'HOST': '192.168.10.107',  # Asegúrate de que esta IP es correcta y accesible
         'PORT': '3306',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -121,7 +119,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Mexico_City'
 
 USE_I18N = True
 
