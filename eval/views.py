@@ -5,10 +5,12 @@ import serial
 import time
 from django.contrib import messages
 from .models import Producto, Venta, ProductoVenta
+from django.db import transaction
+
 
 
 def leer_bascula():
-    puerto = '/dev/ttyUSB0'
+    puerto = 'COM4'
     baudios = 9600
     try:
         with serial.Serial(puerto, baudios, timeout=1) as ser:
@@ -18,6 +20,7 @@ def leer_bascula():
                 data = ser.readline().decode('utf-8').rstrip()
                 # Extraer solo la parte numérica
                 peso_str = ''.join(filter(lambda x: x.isdigit() or x == '.', data))
+                print('el resultado es'+ peso_str)
                 return peso_str
             else:
                 return "0"  # Retorna "0" o algún valor por defecto si no hay respuesta
@@ -25,13 +28,13 @@ def leer_bascula():
         return "0"  # Retorna "0" o algún valor por defecto en caso de error
 
 
-def obtener_venta_abierta():
-    # Buscar una venta abierta con operador igual a 1
-    venta_abierta = Venta.objects.filter(abierta=True, operador=1).first()
 
-    # Si no existe una venta abierta con operador igual a 1, crear una nueva
+def obtener_venta_abierta():
+    venta_abierta = Venta.objects.filter(abierta=True, operador=2).first()
+
+
     if not venta_abierta:
-        venta_abierta = Venta.objects.create(abierta=True, operador=1)
+        venta_abierta = Venta.objects.create(abierta=True, operador=2)
 
     return venta_abierta
 
@@ -44,33 +47,45 @@ def hello(request):
 
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import Producto, Venta, ProductoVenta
+from decimal import Decimal, InvalidOperation
+
 def check(request):
     if request.method == 'POST':
         codigo = request.POST.get('codigo')
+        print('todo bien ')
         peso_str = leer_bascula()  # Llama a la función para obtener el peso
+
+        print(peso_str + 'prueba')
 
         try:
             peso = Decimal(peso_str)
         except InvalidOperation:
             return render(request, 'error.html', {'mensaje': 'Peso inválido'})
+        
         if not Producto.objects.filter(codigo=codigo).exists():
             messages.error(request, 'No existe un producto con el código proporcionado.')
             return redirect('hello')
 
-        producto = Producto.objects.get(codigo=codigo)
+        
         producto = get_object_or_404(Producto, codigo=codigo)
+        print(producto)
         preciofinal = producto.precio * peso
-        preciofinal = preciofinal.quantize(Decimal('0.001'))  # Redondear a 3 decimales
+        print(preciofinal)
+        preciofinal = preciofinal.quantize(Decimal('0.01'))  # Redondear a 3 decimales
 
         # Verificar si existe una venta abierta
         venta = obtener_venta_abierta()
-        # Crear un nuevo ProductoVenta y asociarlo con la venta encontrada o creada
+        print(venta)
         ProductoVenta.objects.create(
             producto=producto,
             venta=venta,
             cantidad=peso,
             subtotal=preciofinal
         )
+        
 
         # Actualizar el total de la venta
         if venta.total is None:
@@ -98,39 +113,33 @@ def agregar_producto(request):
 
 def eliminar_producto_venta(request, producto_venta_id):
     try:
-        producto_venta = ProductoVenta.objects.get(id=producto_venta_id)
+        with transaction.atomic():
+            producto_venta = ProductoVenta.objects.get(id=producto_venta_id)
+            venta = producto_venta.venta
+            producto_venta.delete()
+
+            # Recalcular el total después de eliminar el producto
+            venta.total = sum(pv.subtotal for pv in ProductoVenta.objects.filter(venta=venta))
+            venta.save()
+            messages.success(request, 'Producto eliminado correctamente.')
     except ProductoVenta.DoesNotExist:
-        messages.warning(request, 'El producto ya ha sido eliminado.')
-        return redirect('hello')
-
-    venta_id = producto_venta.venta.id_venta
-    producto_venta.delete()
-
-    # Actualizar el total de la venta
-    venta = get_object_or_404(Venta, id_venta=venta_id)
-    venta.total = sum(item.subtotal for item in ProductoVenta.objects.filter(venta=venta))
-    venta.save()
+        # Este mensaje se mostrará si se intenta acceder a un ProductoVenta ya eliminado
+        messages.error(request, 'El producto ya ha sido eliminado.')
 
     return redirect('hello')
-
 
 def finalizar_venta(request):
-    
-    ventaactual = get_object_or_404(Venta, abierta=True, operador=1)
-    # Comprobar si el total de la venta es 0
-    if ventaactual.total == Decimal('0.00'):
-        # Aquí puedes decidir qué hacer si el total es 0. 
-        # Por ejemplo, podrías eliminar la venta o simplemente redirigir a otra página.
-        ventaactual.delete()
+    venta_actual = get_object_or_404(Venta, abierta=True, operador=2)
+    if venta_actual.total == Decimal('0.00'):
         messages.info(request, 'La venta no se guardó porque el total es 0.')
-        return redirect('hello')
+    else:
+        venta_actual.abierta = False
+    
+        venta_actual.save()
+        messages.success(request, 'Venta finalizada correctamente.')
 
-    ventaactual.abierta = False
-    ventaactual.save()
     return redirect('hello')
 
 
-
         
         
-
