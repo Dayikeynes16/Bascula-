@@ -6,6 +6,7 @@ import time
 from django.contrib import messages
 from .models import Producto, Venta, ProductoVenta
 from django.db import transaction
+from django.http import Http404
 
 
 
@@ -30,11 +31,11 @@ def leer_bascula():
 
 
 def obtener_venta_abierta():
-    venta_abierta = Venta.objects.filter(abierta=True, operador=2).first()
+    venta_abierta = Venta.objects.filter(abierta=True, operador=2, finalizada = False).get()
 
 
     if not venta_abierta:
-        venta_abierta = Venta.objects.create(abierta=True, operador=2)
+        venta_abierta = Venta.objects.create(abierta=True, operador=2,finalizada = False)
 
     return venta_abierta
 
@@ -53,32 +54,32 @@ from .models import Producto, Venta, ProductoVenta
 from decimal import Decimal, InvalidOperation
 
 def check(request):
-    if request.method == 'POST':
-        codigo = request.POST.get('codigo')
-        print('todo bien ')
-        peso_str = leer_bascula()  # Llama a la función para obtener el peso
+    special_codes = {
+        '99': ('11', Decimal('0.5')),
+        '98': ('12', Decimal('1.0')),
+        # Add more special codes as needed
+    }
 
-        print(peso_str + 'prueba')
-
+    codigo = request.POST.get('codigo')
+    if codigo in special_codes:
+        codigo, peso = special_codes[codigo]  # Fetch the mapped code and weight
+        peso_str = str(peso)  # Convert Decimal back to string for consistent context handling
+    else:
+        peso_str = leer_bascula()
         try:
             peso = Decimal(peso_str)
         except InvalidOperation:
             return render(request, 'error.html', {'mensaje': 'Peso inválido'})
-        
-        if not Producto.objects.filter(codigo=codigo).exists():
-            messages.error(request, 'No existe un producto con el código proporcionado.')
-            return redirect('hello')
 
-        
+    try:
         producto = get_object_or_404(Producto, codigo=codigo)
-        print(producto)
-        preciofinal = producto.precio * peso
-        print(preciofinal)
-        preciofinal = preciofinal.quantize(Decimal('0.01'))  # Redondear a 3 decimales
+    except Http404:
+        messages.error(request, 'No existe un producto con el código proporcionado.')
+        return redirect('hello')
+    preciofinal = (producto.precio * peso).quantize(Decimal('0.01'))
 
-        # Verificar si existe una venta abierta
+    with transaction.atomic():
         venta = obtener_venta_abierta()
-        print(venta)
         ProductoVenta.objects.create(
             producto=producto,
             venta=venta,
@@ -86,18 +87,18 @@ def check(request):
             subtotal=preciofinal
         )
         
-
-        # Actualizar el total de la venta
-        if venta.total is None:
-            venta.total = Decimal('0.00')
-        venta.total += preciofinal
+        venta.total = (venta.total or Decimal('0.00')) + preciofinal
         venta.save()
 
-        # Actualizar el contexto para incluir la venta y el precio final
-        context = {'peso': peso_str, 'codigo': codigo, 'preciofinal': preciofinal, 'producto': producto, 'venta': venta}
+    context = {
+        'peso': peso_str,  # Now consistent across all cases
+        'codigo': codigo,
+        'preciofinal': preciofinal,
+        'producto': producto,
+        'venta': venta
+    }
 
-        return redirect('hello')
-    return redirect('hello')
+    return redirect('hello') 
 
 def agregar_producto(request):
     if request.method == 'POST':
@@ -129,15 +130,14 @@ def eliminar_producto_venta(request, producto_venta_id):
     return redirect('hello')
 
 def finalizar_venta(request):
-    venta_actual = get_object_or_404(Venta, abierta=True, operador=2)
+    venta_actual = get_object_or_404(Venta, abierta=True, operador=2, finalizada = False)
     if venta_actual.total == Decimal('0.00'):
         messages.info(request, 'La venta no se guardó porque el total es 0.')
     else:
         venta_actual.abierta = False
-    
+
         venta_actual.save()
         messages.success(request, 'Venta finalizada correctamente.')
-
     return redirect('hello')
 
 
