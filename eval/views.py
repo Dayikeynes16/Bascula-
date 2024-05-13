@@ -10,7 +10,7 @@ from django.db import transaction
 
 
 def leer_bascula():
-    puerto = 'COM4'
+    puerto = '/dev/ttyUSB0'
     baudios = 9600
     try:
         with serial.Serial(puerto, baudios, timeout=1) as ser:
@@ -30,11 +30,11 @@ def leer_bascula():
 
 
 def obtener_venta_abierta():
-    venta_abierta = Venta.objects.filter(abierta=True, operador=2).first()
+    venta_abierta = Venta.objects.filter(abierta=True, operador=1).first()
 
 
     if not venta_abierta:
-        venta_abierta = Venta.objects.create(abierta=True, operador=2)
+        venta_abierta = Venta.objects.create(abierta=True, operador=1)
 
     return venta_abierta
 
@@ -57,13 +57,20 @@ def check(request):
         codigo = request.POST.get('codigo')
         print('todo bien ')
         peso_str = leer_bascula()  # Llama a la función para obtener el peso
-
+        peso = Decimal(peso_str)
         print(peso_str + 'prueba')
 
-        try:
-            peso = Decimal(peso_str)
-        except InvalidOperation:
-            return render(request, 'error.html', {'mensaje': 'Peso inválido'})
+        if peso == 0:
+            messages.error(request, 'el peso no puede ser 0, verifique la balanza.')
+            return redirect('hello')
+        
+
+        #try:
+      ##      peso = Decimal(peso_str)
+      #      if peso == 0:
+       #         print('el peso es 0')
+      #  except InvalidOperation:
+    #    return render(request, 'error.html', {'mensaje': 'Peso inválido'})
         
         if not Producto.objects.filter(codigo=codigo).exists():
             messages.error(request, 'No existe un producto con el código proporcionado.')
@@ -71,10 +78,10 @@ def check(request):
 
         
         producto = get_object_or_404(Producto, codigo=codigo)
-        print(producto)
+    
         preciofinal = producto.precio * peso
-        print(preciofinal)
-        preciofinal = preciofinal.quantize(Decimal('0.01'))  # Redondear a 3 decimales
+        
+        preciofinal = preciofinal.quantize(Decimal('0.01'))  
 
         # Verificar si existe una venta abierta
         venta = obtener_venta_abierta()
@@ -94,7 +101,7 @@ def check(request):
         venta.save()
 
         # Actualizar el contexto para incluir la venta y el precio final
-        context = {'peso': peso_str, 'codigo': codigo, 'preciofinal': preciofinal, 'producto': producto, 'venta': venta}
+        context = {'peso': peso, 'codigo': codigo, 'preciofinal': preciofinal, 'producto': producto, 'venta': venta}
 
         return redirect('hello')
     return redirect('hello')
@@ -118,7 +125,6 @@ def eliminar_producto_venta(request, producto_venta_id):
             venta = producto_venta.venta
             producto_venta.delete()
 
-            # Recalcular el total después de eliminar el producto
             venta.total = sum(pv.subtotal for pv in ProductoVenta.objects.filter(venta=venta))
             venta.save()
             messages.success(request, 'Producto eliminado correctamente.')
@@ -129,7 +135,7 @@ def eliminar_producto_venta(request, producto_venta_id):
     return redirect('hello')
 
 def finalizar_venta(request):
-    venta_actual = get_object_or_404(Venta, abierta=True, operador=2)
+    venta_actual = get_object_or_404(Venta, abierta=True, operador=1)
     if venta_actual.total == Decimal('0.00'):
         messages.info(request, 'La venta no se guardó porque el total es 0.')
     else:

@@ -53,10 +53,17 @@
    
 
 <section class="section">
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li style="font-size: 20px;" {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
     <form class="formulario" action="{% url 'check' %}" method="post">
         {% csrf_token %}
         <div>
-            <label  for="codigo">Código del Producto:</label>
+        
             <input autocomplete="off" class="form-control" type="number" id="codigo" name="codigo" required autofocus>
             <label for="codigo">Código del Producto:</label>
             <div id="num-pad">
@@ -78,13 +85,7 @@
         <button class="btn btn-primary" type="submit">Enviar</button>
     </form>
 
-    {% if messages %}
-<ul class="messages">
-    {% for message in messages %}
-    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
+
 <br>
 
 <h1>Total: {{ ventaactual.total }}</h1>
