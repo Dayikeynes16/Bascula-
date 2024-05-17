@@ -30,3 +30,20 @@ body{
     flex-direction: column;
     gap: .5rem;
 }
+#num-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Three columns */
+    gap: 5px; /* Space between buttons */
+    max-width: 200px; /* Limit the pad width */
+    margin: auto; /* Centering the pad */
+}
+
+.num-key, .delete-key {
+    padding: 10px; /* Padding for larger clickable area */
+    font-size: 16px; /* Larger font size for better readability */
+    width: 100%; /* Ensure full width within grid column */
+}
+
+.delete-key {
+    grid-column: span 3; /* Make delete key span across all columns */
+}

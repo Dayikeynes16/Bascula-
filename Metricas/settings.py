@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'channels',
     'eval',
 ]
 
@@ -88,10 +87,10 @@ ASGI_APPLICATION = 'Metricas.routing.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'puebla',
-        'USER': 'root',
+        'NAME': 'puebla2',
+        'USER': 'balanza',
         'PASSWORD': 'dayikeynes',
-        'HOST': '192.168.10.122',
+        'HOST': '192.168.10.107',
         'PORT': '3306',
     }
 }
