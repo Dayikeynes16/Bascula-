@@ -90,7 +90,7 @@ DATABASES = {
         'NAME': 'puebla2',
         'USER': 'balanza',
         'PASSWORD': 'dayikeynes',
-        'HOST': '192.168.10.107',  # Asegúrate de que esta IP es correcta y accesible
+        'HOST': '192.168.10.128',  # Asegúrate de que esta IP es correcta y accesible
         'PORT': '3306',
     }
 }
